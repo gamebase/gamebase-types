@@ -1,3 +1,6 @@
+var underscore = require('underscore');
+
+
 /**
   The 2dMap contains all the information related to a 2d map
  **/
@@ -42,3 +45,46 @@ Map2D.prototype.toJSON = function() {
     }
     return results;
 }
+
+function Tile(opts) {
+    
+    opts = opts || {};    
+    this.update(opts);    
+}
+
+Tile.prototype.update = function(opts) {
+    if (!opts) return;
+    if (opts.elevation) this.el = opts.elevation;
+    if (opts.terrain) this.tn = opts.terrain;
+}
+
+/**
+  Sets the height of the tile
+ **/
+Tile.prototype.setElevation = function(elevation) {
+    this.el = elevation;
+}
+
+/**
+  Sets the terrain of the tile
+ **/
+Tile.prototype.setTerrain = function(terrain) {
+    this.tn = terrain;
+}
+
+function randomInRange(min, max) {
+    return Math.round(min+ (Math.random() * (max - min)));
+}
+
+
+
+
+function GamebaseTypes() {
+    
+}
+
+GamebaseTypes.Map2D = Map2D;
+GamebaseTypes.Tile = Tile;
+GamebaseTypes.randomInRange = randomInRange;
+
+module.exports = GamebaseTypes;

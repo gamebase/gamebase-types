@@ -1,5 +1,3 @@
-module.exports = {
-    randomInRange: function(min, max) {
-        return Math.round(min+ (Math.random() * (max - min)));
-    }
+function randomInRange(min, max) {
+    return Math.round(min+ (Math.random() * (max - min)));
 }
