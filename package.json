@@ -2,6 +2,7 @@
     "name": "gamebase-types",
     "description": "Gamebase Common Types for both browser and server usage",
     "version": "0.1.0",
+    "main": "./pkg/cjs/GamebaseTypes",
     "dependencies": {
         "underscore": "*"
     },

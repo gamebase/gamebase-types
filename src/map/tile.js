@@ -23,3 +23,10 @@ Tile.prototype.setElevation = function(elevation) {
 Tile.prototype.setTerrain = function(terrain) {
     this.tn = terrain;
 }
+
+/**
+  Returns the terrain
+**/
+Tile.prototype.getTerrain = function() {
+    return this.tn;
+}
