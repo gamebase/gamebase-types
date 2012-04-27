@@ -5,30 +5,35 @@ function Map2D(opts) {
     
     opts = opts || {};
     this.size = opts.size || {width: 300, height: 300};
-    
-    this.initialise();    
+    this.tile = opts.tile || {width: 16, height: 16};
+    this.metadata = opts.metadata || {title: "Untitled World"};
+    this.layers = [];
 }
 
-Map2D.prototype.initialise = function() {
-    
-    this.tiles = new Array(this.size.height);
-    for (var i = 0; i < this.size.height; i++) {
-        this.tiles[i] = new Array(this.size.width);
+/**
+  Adds a layer to the map at the position indicated
+  (if no position supplied, on top of other layers)
+ **/
+Map2D.prototype.addLayer = function(layer, position) {
+    if (!layer) return;
+    if (!position || position >= this.layers.length) {
+        this.layers.push(layer);
+    } else {
+        this.layers.splice(position, 0, layer);
     }
 }
 
 /**
-  Gets the tile at the given coordinates
+  Returns the layer with the given id
  **/
-Map2D.prototype.getTile = function(x, y) {
-    return this.tiles[y][x] = tile;
-}
-
-/**
-  Sets the tile at the given coordinates
- **/
-Map2D.prototype.setTile = function(x, y, tile) {
-    this.tiles[y][x] = tile;
+Map2D.prototype.getLayer = function(id) {
+    var i = this.layers.length;
+    while (i--) {
+        if (this.layers[i].id === id) {
+            return this.layers[i];
+        }
+    }
+    return null;
 }
 
 /**
@@ -53,21 +58,18 @@ Map2D.prototype.getHeight = function() {
 }
 
 /**
-  Returns the row given by y
+  Returns true if the x,y is within the bounds of the map
  **/
-Map2D.prototype.getRow = function(y) {
-    if (y >= this.getHeight()) return null;
-    return this.tiles[y];
+Map2D.prototype.withinBounds = function(x, y) {
+    return (x >= 0 && x < this.size.width)
+        && (y >= 0 && y < this.size.height);
 }
 
 Map2D.prototype.toJSON = function() {
-    var results = {world: {size: this.size}, tiles: []};
+    var results = {world: {size: this.size}, layers: []};
     
-    for (var i = 0; i < this.tiles.length; i++) {
-        var row = this.tiles[i];
-        for (var j = 0; j < row.length; j++) {
-            results.tiles.push(row[j]);
-        }
+    for (var i = 0; i < this.layers.length; i++) {
+        results.layers.push(this.layers[i].toJSON());
     }
     return results;
 }

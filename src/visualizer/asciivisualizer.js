@@ -11,6 +11,7 @@ function ASCIIVisualizer(opts) {
     this.opts = underscore.extend({
         colorize: false,
         palette: {
+            4: BasicColors.blue,
             1: BasicColors.green,
             2: BasicColors.yellow,
             3: BasicColors.red
@@ -23,20 +24,22 @@ ASCIIVisualizer.prototype.visualizeTo = function(map, output) {
     var numRows = map.getHeight(),
         row = null,
         rep = "",
-        colour = this.opts.colorize || false;
-    
-    for (var i = 0; i < numRows; i++) {
-        rep = "";
-        row = map.getRow(i);
+        colour = this.opts.colorize || false,
+        terrainLayer = map.getLayer('terrain');
+
+    for (var i = 0; i < terrainLayer.tiles.length; i++) {
+        var tile = terrainLayer.tiles[i],
+            value = (tile ? tile.tn || '?' : '*');
+            
+        if (colour) {
+            var pal = this.opts.palette[value];
+            if (pal) value = pal[0] + value + pal[1];
+        }
+        rep += value;
         
-        for (var j = 0; j < row.length; j++) {
-            var value = (row[j] ? row[j].tn || '?' : '*');
-            if (colour) {
-                var pal = this.opts.palette[value];
-                if (pal) value = pal[0] + value + pal[1];
-            }
-            rep += value;
-        }        
-        output.write(rep + '\n');
+        if ((i + 1) % map.size.width === 0) {
+            output.write(rep + '\n');
+            rep = "";
+        }
     }
 }

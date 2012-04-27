@@ -7,30 +7,35 @@ function Map2D(opts) {
     
     opts = opts || {};
     this.size = opts.size || {width: 300, height: 300};
-    
-    this.initialise();    
+    this.tile = opts.tile || {width: 16, height: 16};
+    this.metadata = opts.metadata || {title: "Untitled World"};
+    this.layers = [];
 }
 
-Map2D.prototype.initialise = function() {
-    
-    this.tiles = new Array(this.size.height);
-    for (var i = 0; i < this.size.height; i++) {
-        this.tiles[i] = new Array(this.size.width);
+/**
+  Adds a layer to the map at the position indicated
+  (if no position supplied, on top of other layers)
+ **/
+Map2D.prototype.addLayer = function(layer, position) {
+    if (!layer) return;
+    if (!position || position >= this.layers.length) {
+        this.layers.push(layer);
+    } else {
+        this.layers.splice(position, 0, layer);
     }
 }
 
 /**
-  Gets the tile at the given coordinates
+  Returns the layer with the given id
  **/
-Map2D.prototype.getTile = function(x, y) {
-    return this.tiles[y][x] = tile;
-}
-
-/**
-  Sets the tile at the given coordinates
- **/
-Map2D.prototype.setTile = function(x, y, tile) {
-    this.tiles[y][x] = tile;
+Map2D.prototype.getLayer = function(id) {
+    var i = this.layers.length;
+    while (i--) {
+        if (this.layers[i].id === id) {
+            return this.layers[i];
+        }
+    }
+    return null;
 }
 
 /**
@@ -55,21 +60,18 @@ Map2D.prototype.getHeight = function() {
 }
 
 /**
-  Returns the row given by y
+  Returns true if the x,y is within the bounds of the map
  **/
-Map2D.prototype.getRow = function(y) {
-    if (y >= this.getHeight()) return null;
-    return this.tiles[y];
+Map2D.prototype.withinBounds = function(x, y) {
+    return (x >= 0 && x < this.size.width)
+        && (y >= 0 && y < this.size.height);
 }
 
 Map2D.prototype.toJSON = function() {
-    var results = {world: {size: this.size}, tiles: []};
+    var results = {world: {size: this.size}, layers: []};
     
-    for (var i = 0; i < this.tiles.length; i++) {
-        var row = this.tiles[i];
-        for (var j = 0; j < row.length; j++) {
-            results.tiles.push(row[j]);
-        }
+    for (var i = 0; i < this.layers.length; i++) {
+        results.layers.push(this.layers[i].toJSON());
     }
     return results;
 }
@@ -107,6 +109,70 @@ Tile.prototype.getTerrain = function() {
     return this.tn;
 }
 
+/**
+  A terrain layer contains an array containing all the tiles
+ **/
+function TerrainLayer(id, size, opts) {
+    this.id = id;
+    this.size = size;
+    this.type = 'terrain';
+    this.tiles = new Array(size.width * size.height);
+}
+
+/**
+  Returns the tile at x,y
+ **/
+TerrainLayer.prototype.getTile = function(x, y) {
+    if (arguments.length == 1) {
+        y = x.y;
+        x = x.x;
+    }
+    var index = this.getTileIndex(x,y);
+    return (index < 0) ? null : this.tiles[index];
+}
+
+/**
+  Sets the tile at x,y
+ **/
+TerrainLayer.prototype.setTile = function(x, y, tile) {
+    this.tiles[this.getTileIndex(x,y)] = tile;
+}
+
+/**
+  Returns the array index of the tile
+ **/
+TerrainLayer.prototype.getTileIndex = function(x, y) {
+    return (y * this.size.width) + x;
+}
+
+/**
+  Converts a tile index to x,y tile coordinates
+ **/
+TerrainLayer.prototype.getIndexPosition = function(tileIndex) {
+    return {
+        x: tileIndex % this.size.width,
+        y: Math.floor(tileIndex / this.size.width)
+    }
+}
+
+/**
+  Return surrounds
+ **/
+TerrainLayer.prototype.getSurrounds = function(x, y) {
+    return [
+        this.getTile(x-1, y-1), this.getTile(x, y-1), this.getTile(x + 1, y - 1),
+        this.getTile(x-1, y), this.getTile(x, y), this.getTile(x+1, y),
+        this.getTile(x-1, y+1), this.getTile(x, y+1), this.getTile(x+1, y+1)
+    ];    
+}
+
+/**
+  Exports the terrain layer to JSON
+ **/
+TerrainLayer.prototype.toJSON = function() {
+    return {id: this.id, type: this.type, size: this.size, tiles: this.tiles};
+}
+
 function randomInRange(min, max) {
     return Math.round(min+ (Math.random() * (max - min)));
 }
@@ -126,6 +192,7 @@ function ASCIIVisualizer(opts) {
     this.opts = underscore.extend({
         colorize: false,
         palette: {
+            4: BasicColors.blue,
             1: BasicColors.green,
             2: BasicColors.yellow,
             3: BasicColors.red
@@ -138,21 +205,23 @@ ASCIIVisualizer.prototype.visualizeTo = function(map, output) {
     var numRows = map.getHeight(),
         row = null,
         rep = "",
-        colour = this.opts.colorize || false;
-    
-    for (var i = 0; i < numRows; i++) {
-        rep = "";
-        row = map.getRow(i);
+        colour = this.opts.colorize || false,
+        terrainLayer = map.getLayer('terrain');
+
+    for (var i = 0; i < terrainLayer.tiles.length; i++) {
+        var tile = terrainLayer.tiles[i],
+            value = (tile ? tile.tn || '?' : '*');
+            
+        if (colour) {
+            var pal = this.opts.palette[value];
+            if (pal) value = pal[0] + value + pal[1];
+        }
+        rep += value;
         
-        for (var j = 0; j < row.length; j++) {
-            var value = (row[j] ? row[j].tn || '?' : '*');
-            if (colour) {
-                var pal = this.opts.palette[value];
-                if (pal) value = pal[0] + value + pal[1];
-            }
-            rep += value;
-        }        
-        output.write(rep + '\n');
+        if ((i + 1) % map.size.width === 0) {
+            output.write(rep + '\n');
+            rep = "";
+        }
     }
 }
 
@@ -163,6 +232,7 @@ function GamebaseTypes() {
 
 GamebaseTypes.Map2D = Map2D;
 GamebaseTypes.Tile = Tile;
+GamebaseTypes.TerrainLayer = TerrainLayer;
 GamebaseTypes.ASCIIVisualizer = ASCIIVisualizer;
 GamebaseTypes.randomInRange = randomInRange;
 GamebaseTypes.Unicode = {
