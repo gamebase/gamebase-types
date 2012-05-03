@@ -8,6 +8,8 @@
     },
     "devDependencies": {
         "interleave": "*",
-        "uglify-js": "*"
+        "uglify-js": "*",
+        "mocha": "*",
+        "chai": "*"
     }
 }

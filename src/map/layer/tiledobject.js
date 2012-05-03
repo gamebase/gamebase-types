@@ -72,8 +72,9 @@ TiledObjectLayer.prototype.getSurrounds = function(x, y) {
   Checks that the object's proposed bounds to do not impinge
   on an existing object
  **/
-TiledObjectLayer.prototype.checkBounds = function(object) {
-    var position = object.topLeft,
+TiledObjectLayer.prototype.checkBounds = function(object, options) {
+    var opts = options || {},
+        position = object.topLeft,
         width = object.width,
         height = Math.ceil(object.tiles.length / width),
         numTiles = object.tiles.length;
@@ -82,7 +83,12 @@ TiledObjectLayer.prototype.checkBounds = function(object) {
     if (position.x < 0 || position.x + width >= this.size.width
          || position.y < 0 || position.y + height >= this.size.height) {
          return false;
-     }
+    }
+     
+    // Ignore the check for collisions if instructed
+    if (opts && opts.allowCollisions === true) {
+        return true;
+    }
         
     // Check for collisions with other objects
     while (numTiles--) {
@@ -102,10 +108,10 @@ TiledObjectLayer.prototype.checkBounds = function(object) {
   Adds an object with the given id at the position starting from the
   tile topLeft given
  **/
-TiledObjectLayer.prototype.addObject = function(object) {
+TiledObjectLayer.prototype.addObject = function(object, options) {
     
     // Check that we can add an object there
-    if (!this.checkBounds(object)) {
+    if (!this.checkBounds(object, options)) {
         return false;
     }
     
@@ -122,17 +128,20 @@ TiledObjectLayer.prototype.addObject = function(object) {
         height = Math.ceil(object.tiles.length / width),
         numTiles = object.tiles.length;
         
-    // Check for collisions with other objects
+    // Set the object tiles
     while (numTiles--) {
         
         var objectTile = object.tiles[numTiles];
         
         // Ignore empty tiles
-        if (!objectTile) continue;
+        if (!objectTile || objectTile === -1) continue;
         
         var relativePosition = { x: numTiles % width, y: Math.floor(numTiles / width) },
             layerPosition = { x: position.x + relativePosition.x, y: position.y + relativePosition.y },
-            tile = this.setTile(layerPosition.x, layerPosition.y, new Tile({terrain: objectTile, obj: id}));              
+            tile = new Tile({terrain: objectTile});
+            
+        tile.obj = id;
+        this.setTile(layerPosition.x, layerPosition.y, tile);              
     }
     return true;
 }

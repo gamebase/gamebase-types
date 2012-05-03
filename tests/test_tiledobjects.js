@@ -1,4 +1,6 @@
-var gbtypes = require('../pkg/cjs/GamebaseTypes'),
+var _ = require('underscore'),
+    expect = require('chai').expect,
+    gbtypes = require('../pkg/cjs/GamebaseTypes'),
     object = {
         id: 'tree',
         topLeft: {x: 2, y: 2},
@@ -15,7 +17,18 @@ describe('Tiled object layer', function() {
         var layer = new gbtypes.TiledObjectLayer('testobjects', {width: 10, height: 10});
         
         layer.addObject(object);
-        console.log(layer.tiles);
+        var ok = layer.addObject({
+            id: 'tree1',
+            width: 3,
+            tiles: [1, 1, 1,
+                    1, 1, 1,
+                    null, 1, null],
+            topLeft: {x: 3, y: 2}});
+        expect(ok).to.equal(false);
+        
+        ok = layer.addObject(_.extend(_.clone(object), {id: 'tree2', topLeft: {x: 6, y: 2}}));
+        expect(ok).to.equal(true);
+        
         done();
     });
         
