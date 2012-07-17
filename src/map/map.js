@@ -4,6 +4,7 @@
 function Map2D(opts) {
     
     opts = opts || {};
+    console.log(opts);
     this.size = opts.size || {width: 300, height: 300};
     this.tile = opts.tile || {width: 16, height: 16};
     this.metadata = opts.metadata || {title: "Untitled World"};

@@ -7,6 +7,7 @@ var underscore = require('underscore');
 function Map2D(opts) {
     
     opts = opts || {};
+    console.log(opts);
     this.size = opts.size || {width: 300, height: 300};
     this.tile = opts.tile || {width: 16, height: 16};
     this.metadata = opts.metadata || {title: "Untitled World"};
@@ -75,6 +76,29 @@ Map2D.prototype.toJSON = function() {
         results.layers.push(this.layers[i].toJSON());
     }
     return results;
+}
+/**
+  A MapObject is contained within an ObjectGroupLayer
+ **/
+function MapObject(options) {
+    options = options || {};
+    
+    this.name = options.name;
+    this.type = options.type;
+    this.size = options.size || {width: 1, height: 1};
+    this.position = options.position || {x: 0, y: 0};
+    this.properties = options.properties || {};
+}
+
+MapObject.prototype.intersects = function(topLeft, bottomRight) {
+    
+    var minX = this.position.x,
+        minY = this.position.y,
+        maxX = minX + this.size.width,
+        maxY = minY + this.size.height;
+    
+    return  (minX <= bottomRight.x) && (maxX >= topLeft.x) &&
+            (minY <= bottomRight.y) && (maxY >= topLeft.y);
 }
 function Tile(opts) {
     
@@ -325,6 +349,45 @@ TiledObjectLayer.prototype.addObject = function(object, options) {
 TiledObjectLayer.prototype.toJSON = function() {
     return {id: this.id, type: this.type, size: this.size, tiles: this.tiles};
 }
+/**
+  An object group contains arbitrary objects that occur within the map,
+  but not necessarily bound to tile coordinates
+ **/
+function ObjectGroupLayer(id, size, opts) {
+    this.id = id;
+    this.size = size;
+    this.type = 'objectgroup';
+    
+    this.objects = [];
+}
+
+/**
+  Adds a MapObject to the group layer
+ **/
+ObjectGroupLayer.prototype.addObject = function(object) {
+    this.objects.push(object);
+}
+
+/**
+  Gets all objects at the given x,y tile position
+ **/
+ObjectGroupLayer.prototype.getObjectsAt = function(x, y) {
+    return null;
+}
+
+/**
+  Returns the first object that intersects the x,y tile position
+ **/
+ObjectGroupLayer.prototype.getTile = function(x, y) {
+    if (!this.objects || this.objects.length == 0) return null;
+    for (var i = 0; i < this.objects.length; i++) {
+        var object = this.objects[i];
+        if (object.intersects({x: x, y: y}, {x: x, y: y})) {
+            return object;
+        }
+    }
+    return null;
+}
 function randomInRange(min, max) {
     return Math.round(min+ (Math.random() * (max - min)));
 }
@@ -381,8 +444,10 @@ function GamebaseTypes() {
 
 GamebaseTypes.Map2D = Map2D;
 GamebaseTypes.Tile = Tile;
+GamebaseTypes.MapObject = MapObject;
 GamebaseTypes.TerrainLayer = TerrainLayer;
 GamebaseTypes.TiledObjectLayer = TiledObjectLayer;
+GamebaseTypes.ObjectGroupLayer = ObjectGroupLayer;
 GamebaseTypes.ASCIIVisualizer = ASCIIVisualizer;
 GamebaseTypes.randomInRange = randomInRange;
 GamebaseTypes.Unicode = {
